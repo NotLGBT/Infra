@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+    parameters {
+        string(name: 'GIT_BRANCH', defaultValue: 'default', description: 'Git branch to build')
+    }
+
+    environment {
+        GITHUB_SECRET = credentials('GITHUB_CREDENTIALS')
+    }
+
+    stages {
+        stage('Counter') {
+            steps {
+                script {
+                    def jenkins = Jenkins.getInstance()
+                    def job = jenkins.getItemByFullName("docker_build")
+                    def nextBuildNumber = job.getNextBuildNumber()
+                    println "Next Build Number: ${nextBuildNumber}"
+
+                    job.updateNextBuildNumber(nextBuildNumber + 1)
+                    env.BUILD_TAG = nextBuildNumber.toString()
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    sh """
+                        echo "Running Build Process"
+                        git clone --filter=blob:none --no-checkout https://${GITHUB_SECRET}@github.com/NotLGBT/Task1.git
+                        cd Task1
+                        git sparse-checkout set --cone
+                        git checkout ${params.GIT_BRANCH}
+                        docker build -f ./Dockerfile ./ -t ghcr.io/notlgbt/flask-app:${env.BUILD_TAG}
+                        docker push ghcr.io/notlgbt/flask-app:${env.BUILD_TAG}
+                    """
+                }
+            }
+        }
+    }
+}
