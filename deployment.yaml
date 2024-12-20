@@ -16,7 +16,9 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: ghcr.io/notlgbt/flask-app:latest 
+          image: ghcr.io/notlgbt/flask-app:latest
+          imagePullSecrets:
+            - name: github-registry-secret
           ports:
             - containerPort: 5000
           env:
